@@ -3,6 +3,7 @@ import { useStore } from 'zustand';
 import { store } from '../state/store.js';
 import Scene from '../three/Scene.jsx';
 import JogControls from '../three/JogControls.jsx';
+import Vernier from './Vernier.jsx';
 import Controls from './Controls.jsx';
 
 export default function CenterPanel() {
@@ -53,8 +54,8 @@ export default function CenterPanel() {
           )}
 
           {activeTab === 'Caliper' && (
-            <div className="w-full h-full flex items-center justify-center p-6 text-center text-slate-400 font-mono text-sm">
-              Digital Caliper Measurement Station Placeholder
+            <div className="w-full h-full relative overflow-hidden">
+              <Vernier />
             </div>
           )}
 
