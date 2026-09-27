@@ -1,22 +1,49 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useStore } from 'zustand';
 import { store } from '../state/store.js';
 import { makeSpecimenGeometry } from './specimenGeometry.js';
+import { deformSpecimen, barrelAmplitude } from '../sim/deform.js';
+import { FracturedSpecimen } from './Fracture.jsx';
+import { Shards } from './Shards.jsx';
 
 export default function Specimen() {
   const trueDims = useStore(store, (s) => s.specimen.trueDims);
   const material = useStore(store, (s) => s.material);
+  const test = useStore(store, (s) => s.test);
 
   const d0 = trueDims?.d0 ?? 20;
   const L0 = trueDims?.L0 ?? 30;
 
-  // 1 scene unit = 10 mm
   const r0 = d0 / 20;
   const height = L0 / 10;
 
   const geometry = useMemo(() => {
     return makeSpecimenGeometry(r0, height);
   }, [r0, height]);
+
+  // Deformation calculation
+  const deltaL = test?.deltaL ?? 0;
+  const e = deltaL / L0;
+  const ePlastic = Math.max(0, e - 0.00125);
+  const b = material?.brittle ? 0 : barrelAmplitude(material, ePlastic, 0.3);
+
+  // Apply deformation geometry displacement
+  useEffect(() => {
+    if (geometry) {
+      deformSpecimen(geometry, L0, e, b);
+    }
+  }, [geometry, L0, e, b]);
+
+  const isFailedCastIron = material?.brittle && test?.status === 'failed';
+
+  if (isFailedCastIron) {
+    return (
+      <group>
+        <FracturedSpecimen />
+        <Shards />
+      </group>
+    );
+  }
 
   const color = material?.brittle ? '#4b4b52' : '#8b949e';
 

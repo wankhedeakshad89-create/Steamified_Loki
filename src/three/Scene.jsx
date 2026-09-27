@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import UTM from './UTM.jsx';
 import Specimen from './Specimen.jsx';
+import TestRunner from './TestRunner.jsx';
 
 export default function Scene() {
   return (
@@ -14,6 +15,9 @@ export default function Scene() {
         className="w-full h-full"
       >
         <color attach="background" args={['#f1f5f9']} />
+
+        {/* Physics Test Simulation Runner */}
+        <TestRunner />
 
         {/* Lighting */}
         <hemisphereLight skyColor="#ffffff" groundColor="#94a3b8" intensity={0.7} />
