@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useStore } from 'zustand';
 import { store } from '../state/store.js';
+import Scene from '../three/Scene.jsx';
+import JogControls from '../three/JogControls.jsx';
 
 export default function CenterPanel() {
   const stepIndex = useStore(store, (s) => s.stepIndex);
@@ -20,7 +22,7 @@ export default function CenterPanel() {
   return (
     <main className="flex-1 bg-slate-50 flex flex-col min-w-0 h-full select-none">
       {/* Tab Bar */}
-      <div className="h-[36px] bg-white border-b border-slate-200 px-3 flex items-center gap-1">
+      <div className="h-[36px] bg-white border-b border-slate-200 px-3 flex items-center gap-1 shrink-0">
         {tabs.map((tab) => (
           <button
             key={tab}
@@ -38,11 +40,26 @@ export default function CenterPanel() {
       </div>
 
       {/* Main Content Box */}
-      <div className="flex-1 p-4 flex items-center justify-center min-h-0">
-        <div className="w-full h-full bg-white border border-slate-200 rounded-[4px] flex items-center justify-center p-6 text-center text-slate-400 font-mono text-sm shadow-xs">
-          {activeTab === '3D View' && '3D View Canvas Placeholder'}
-          {activeTab === 'Caliper' && 'Digital Caliper Measurement Station Placeholder'}
-          {activeTab === 'Notebook' && 'Lab Notebook & Data Export Placeholder'}
+      <div className="flex-1 p-3 flex flex-col min-h-0">
+        <div className="w-full h-full bg-white border border-slate-200 rounded-[4px] relative overflow-hidden flex flex-col min-h-0">
+          {activeTab === '3D View' && (
+            <div className="w-full h-full relative overflow-hidden">
+              <Scene />
+              <JogControls />
+            </div>
+          )}
+
+          {activeTab === 'Caliper' && (
+            <div className="w-full h-full flex items-center justify-center p-6 text-center text-slate-400 font-mono text-sm">
+              Digital Caliper Measurement Station Placeholder
+            </div>
+          )}
+
+          {activeTab === 'Notebook' && (
+            <div className="w-full h-full flex items-center justify-center p-6 text-center text-slate-400 font-mono text-sm">
+              Lab Notebook & Data Export Placeholder
+            </div>
+          )}
         </div>
       </div>
     </main>
