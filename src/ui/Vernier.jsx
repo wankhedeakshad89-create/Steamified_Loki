@@ -27,13 +27,19 @@ export default function Vernier() {
 
   const targetDim = getTargetDim();
 
-  // Jaw opening distance x in mm (initialized to targetDim + zeroError + 0.04 mm for reading)
+  // Jaw opening distance x in mm
   const [opening, setOpening] = useState(targetDim + zeroError);
 
   // Keep opening clamped when mode or target changes
   useEffect(() => {
     setOpening((prev) => Math.max(targetDim, prev));
   }, [targetDim]);
+
+  // Snap Jaw to Specimen Action
+  const snapJawToSpecimen = () => {
+    const snapValue = Math.round((targetDim + zeroError) * 100) / 100;
+    setOpening(snapValue);
+  };
 
   // Measurement logic formulas
   const rawOpening = opening;
@@ -46,6 +52,14 @@ export default function Vernier() {
   // Reading record log
   const [readings, setReadings] = useState([]);
 
+  // Reset / Clear Readings Action
+  const clearReadings = () => {
+    setReadings([]);
+    store.setState((s) => ({
+      measure: { d0Mean: 0, L0Mean: 0, validated: false },
+    }));
+  };
+
   // Drag state
   const isDraggingRef = useRef(false);
   const startXRef = useRef(0);
@@ -55,7 +69,7 @@ export default function Vernier() {
   // SVG Scaling: 1 mm = 9 pixels
   const PX_PER_MM = 9;
   const MAIN_SCALE_START_X = 120;
-  const SCALE_Y = 90;
+  const SCALE_Y = 85;
 
   // Handle Dragging
   const handleMouseDown = (e) => {
@@ -134,7 +148,7 @@ export default function Vernier() {
     const x = MAIN_SCALE_START_X + mm * PX_PER_MM;
     const isMajor = mm % 10 === 0;
     const isMedium = mm % 5 === 0 && !isMajor;
-    const len = isMajor ? 24 : isMedium ? 16 : 10;
+    const len = isMajor ? 22 : isMedium ? 15 : 9;
 
     return { mm, x, isMajor, isMedium, len };
   });
@@ -147,7 +161,7 @@ export default function Vernier() {
     const x = slidingJawX + div * 0.98 * PX_PER_MM;
     const isMajor = div % 10 === 0;
     const isMedium = div % 5 === 0 && !isMajor;
-    const len = isMajor ? 20 : isMedium ? 14 : 9;
+    const len = isMajor ? 18 : isMedium ? 13 : 8;
     const isCoincident = div === vsr;
 
     return { div, x, isMajor, isMedium, len, isCoincident };
@@ -158,10 +172,10 @@ export default function Vernier() {
       ref={containerRef}
       tabIndex={0}
       onKeyDown={handleKeyDown}
-      className="w-full h-full bg-white flex flex-col justify-between p-3 select-none outline-none overflow-y-auto"
+      className="w-full bg-white flex flex-col p-3 gap-2.5 select-none outline-none"
     >
       {/* Top Manual Instructions Bar */}
-      <div className="bg-slate-50 border border-slate-200 rounded-[4px] p-2 flex items-center justify-between text-xs text-slate-700">
+      <div className="bg-slate-50 border border-slate-200 rounded-[4px] p-2 flex items-center justify-between text-xs text-slate-700 shrink-0">
         <div className="flex items-center gap-2">
           <span className="font-semibold text-slate-900">Vernier Caliper Station</span>
           <span className="text-slate-300">|</span>
@@ -169,14 +183,14 @@ export default function Vernier() {
           <span className="text-slate-300">|</span>
           <span className="text-slate-500">Zero Error: <strong className="font-mono">+{zeroError.toFixed(2)} mm</strong></span>
         </div>
-        <div className="text-[11px] text-slate-400 font-mono">
+        <div className="text-[11px] text-slate-400 font-mono hidden md:block">
           Use mouse drag or ←/→ arrow keys (Shift+←/→ for ±1.0mm)
         </div>
       </div>
 
       {/* Interactive Controls Strip */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-100/60 p-2.5 border border-slate-200 rounded-[4px] text-xs">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-100/60 p-2 border border-slate-200 rounded-[4px] text-xs shrink-0">
+        <div className="flex items-center gap-2.5 flex-wrap">
           {/* Mode Selector */}
           <div className="flex items-center gap-1.5">
             <span className="text-[11px] font-semibold text-slate-500 uppercase">Mode:</span>
@@ -184,7 +198,7 @@ export default function Vernier() {
               <button
                 type="button"
                 onClick={() => setMode('d0')}
-                className={`h-6 px-2.5 rounded-[2px] text-xs transition-colors ${
+                className={`h-6 px-2.5 rounded-[2px] text-xs transition-colors cursor-pointer ${
                   mode === 'd0' ? 'bg-slate-900 text-white font-semibold' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -193,7 +207,7 @@ export default function Vernier() {
               <button
                 type="button"
                 onClick={() => setMode('L0')}
-                className={`h-6 px-2.5 rounded-[2px] text-xs transition-colors ${
+                className={`h-6 px-2.5 rounded-[2px] text-xs transition-colors cursor-pointer ${
                   mode === 'L0' ? 'bg-slate-900 text-white font-semibold' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -212,7 +226,7 @@ export default function Vernier() {
                     key={pos}
                     type="button"
                     onClick={() => setDiamPosition(pos)}
-                    className={`h-6 px-2 rounded-[2px] text-xs uppercase font-mono transition-colors ${
+                    className={`h-6 px-2 rounded-[2px] text-xs uppercase font-mono transition-colors cursor-pointer ${
                       diamPosition === pos ? 'bg-indigo-600 text-white font-semibold' : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
@@ -224,15 +238,39 @@ export default function Vernier() {
           )}
         </div>
 
-        {/* Record Reading Button & Status */}
-        <div className="flex items-center gap-3">
+        {/* Action Buttons: Record Reading, Snap Jaw, Clear Readings & Status */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Snap Jaw Button */}
+          <button
+            type="button"
+            onClick={snapJawToSpecimen}
+            title="Snap caliper jaws firmly against specimen contact surface"
+            className="h-7 px-2.5 bg-indigo-600 text-white text-xs font-semibold rounded-[4px] border border-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 shadow-xs cursor-pointer flex items-center gap-1"
+          >
+            <span>Snap Jaw</span>
+          </button>
+
+          {/* Record Reading Button */}
           <button
             type="button"
             onClick={recordReading}
-            className="h-8 px-4 bg-[#0f172a] text-white text-xs font-semibold rounded-[4px] border border-[#0f172a] hover:bg-slate-800 active:bg-slate-900 shadow-xs cursor-pointer"
+            title="Record current uncorrected and corrected reading"
+            className="h-7 px-3 bg-[#0f172a] text-white text-xs font-semibold rounded-[4px] border border-[#0f172a] hover:bg-slate-800 active:bg-slate-900 shadow-xs cursor-pointer"
           >
             Record Reading
           </button>
+
+          {/* Reset / Clear Readings Button */}
+          {readings.length > 0 && (
+            <button
+              type="button"
+              onClick={clearReadings}
+              title="Clear all recorded readings and reset progress"
+              className="h-7 px-2 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-[4px] hover:bg-slate-50 active:bg-slate-100 cursor-pointer"
+            >
+              Clear Log
+            </button>
+          )}
 
           {isValidated ? (
             <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-semibold border border-emerald-300 rounded-[4px] text-xs flex items-center gap-1">
@@ -250,11 +288,11 @@ export default function Vernier() {
         </div>
       </div>
 
-      {/* SVG Vernier Caliper Visual Diagram */}
-      <div className="w-full bg-slate-900 rounded-[4px] border border-slate-800 p-2 flex justify-center items-center overflow-x-auto relative">
-        <svg width="700" height="230" viewBox="0 0 700 230" className="select-none">
+      {/* Responsive Compact SVG Vernier Caliper Visual Diagram */}
+      <div className="w-full bg-slate-900 rounded-[4px] border border-slate-800 p-1 flex justify-center items-center overflow-x-auto relative shrink-0 max-h-[200px]">
+        <svg width="700" height="195" viewBox="0 0 700 195" className="select-none max-h-[195px] w-auto">
           {/* Main Scale Bar */}
-          <rect x="60" y="50" width="600" height="40" fill="#334155" stroke="#475569" strokeWidth="1.5" rx="2" />
+          <rect x="60" y="40" width="600" height="36" fill="#334155" stroke="#475569" strokeWidth="1.5" rx="2" />
 
           {/* Main Scale Ticks (1 mm graduations) */}
           {mainTicks.map((t) => (
@@ -270,9 +308,9 @@ export default function Vernier() {
               {t.isMajor && (
                 <text
                   x={t.x}
-                  y={SCALE_Y - 28}
+                  y={SCALE_Y - 24}
                   textAnchor="middle"
-                  fontSize="9"
+                  fontSize="8.5"
                   fill="#94a3b8"
                   fontFamily="monospace"
                   fontWeight="600"
@@ -285,23 +323,23 @@ export default function Vernier() {
 
           {/* Fixed Anvil / Left Jaw */}
           <path
-            d="M 60 50 L 60 190 L 95 190 L 105 130 L 120 130 L 120 90 L 60 50 Z"
+            d="M 60 40 L 60 175 L 95 175 L 105 118 L 120 118 L 120 78 L 60 40 Z"
             fill="#475569"
             stroke="#64748b"
             strokeWidth="1.5"
           />
           {/* Fixed Jaw Reference Line (at x = 120 mm) */}
-          <line x1={MAIN_SCALE_START_X} y1="90" x2={MAIN_SCALE_START_X} y2="190" stroke="#94a3b8" strokeWidth="2" />
+          <line x1={MAIN_SCALE_START_X} y1="78" x2={MAIN_SCALE_START_X} y2="175" stroke="#94a3b8" strokeWidth="2" />
 
           {/* Specimen Silhouette (Width = opening * PX_PER_MM) */}
-          <g transform={`translate(${MAIN_SCALE_START_X}, 130)`}>
+          <g transform={`translate(${MAIN_SCALE_START_X}, 118)`}>
             {mode === 'd0' ? (
               /* Diameter Cross-section Silhouette (Circular/Cylindrical profile) */
               <rect
                 x="0"
-                y="-25"
+                y="-22"
                 width={opening * PX_PER_MM}
-                height="50"
+                height="44"
                 fill="#38bdf8"
                 fillOpacity="0.25"
                 stroke="#38bdf8"
@@ -313,9 +351,9 @@ export default function Vernier() {
               /* Height Profile Silhouette (Rectangular specimen block) */
               <rect
                 x="0"
-                y="-35"
+                y="-30"
                 width={opening * PX_PER_MM}
-                height="70"
+                height="60"
                 fill="#a78bfa"
                 fillOpacity="0.25"
                 stroke="#a78bfa"
@@ -344,17 +382,17 @@ export default function Vernier() {
             className="cursor-ew-resize"
           >
             {/* Sliding Frame Box encompassing Main Scale */}
-            <rect x="110" y="42" width="160" height="56" fill="#1e293b" fillOpacity="0.9" stroke="#38bdf8" strokeWidth="1.5" rx="3" />
+            <rect x="110" y="32" width="160" height="52" fill="#1e293b" fillOpacity="0.9" stroke="#38bdf8" strokeWidth="1.5" rx="3" />
 
             {/* Sliding Jaw Stem */}
             <path
-              d="M 120 90 L 120 190 L 100 190 L 110 130 L 110 90 Z"
+              d="M 120 78 L 120 175 L 100 175 L 110 118 L 110 78 Z"
               fill="#475569"
               stroke="#38bdf8"
               strokeWidth="1.5"
             />
             {/* Sliding Jaw Contact Line */}
-            <line x1={MAIN_SCALE_START_X} y1="90" x2={MAIN_SCALE_START_X} y2="190" stroke="#38bdf8" strokeWidth="2" />
+            <line x1={MAIN_SCALE_START_X} y1="78" x2={MAIN_SCALE_START_X} y2="175" stroke="#38bdf8" strokeWidth="2" />
 
             {/* Vernier Scale Ticks (50 divisions) */}
             {vernierTicks.map((vt) => (
@@ -370,7 +408,7 @@ export default function Vernier() {
                 {vt.isMajor && (
                   <text
                     x={vt.x}
-                    y={SCALE_Y + 30}
+                    y={SCALE_Y + 26}
                     textAnchor="middle"
                     fontSize="8.5"
                     fill={vt.isCoincident ? '#38bdf8' : '#cbd5e1'}
@@ -386,7 +424,7 @@ export default function Vernier() {
             {/* Coincidence Accent Indicator Arrow */}
             {vernierTicks.find((vt) => vt.isCoincident) && (
               <polygon
-                points={`${vernierTicks[vsr].x - 4},${SCALE_Y + 35} ${vernierTicks[vsr].x + 4},${SCALE_Y + 35} ${vernierTicks[vsr].x},${SCALE_Y + 24}`}
+                points={`${vernierTicks[vsr].x - 4},${SCALE_Y + 31} ${vernierTicks[vsr].x + 4},${SCALE_Y + 31} ${vernierTicks[vsr].x},${SCALE_Y + 20}`}
                 fill="#38bdf8"
               />
             )}
@@ -395,7 +433,7 @@ export default function Vernier() {
       </div>
 
       {/* Measurement Readout Summary Strip */}
-      <div className="grid grid-cols-4 gap-2 bg-slate-900 text-white p-2.5 rounded-[4px] border border-slate-800 font-mono text-xs">
+      <div className="grid grid-cols-4 gap-2 bg-slate-900 text-white p-2 rounded-[4px] border border-slate-800 font-mono text-xs shrink-0">
         <div className="flex flex-col">
           <span className="text-[10px] text-slate-400 font-sans">Main Scale (MSR):</span>
           <span className="text-base font-bold text-slate-100">{msr} <span className="text-xs font-normal text-slate-400">mm</span></span>
@@ -415,7 +453,7 @@ export default function Vernier() {
       </div>
 
       {/* Tabular Reading Log */}
-      <div className="bg-white border border-slate-200 rounded-[4px] overflow-hidden max-h-[140px] overflow-y-auto">
+      <div className="bg-white border border-slate-200 rounded-[4px] shrink-0">
         <table className="w-full text-left border-collapse text-xs font-mono">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-sans font-semibold text-slate-500 uppercase">
@@ -432,7 +470,7 @@ export default function Vernier() {
             {readings.length === 0 ? (
               <tr>
                 <td colSpan="7" className="p-2.5 text-center text-slate-400 font-sans italic text-xs">
-                  No readings recorded yet. Adjust caliper and click "Record Reading".
+                  No readings recorded yet. Click "Snap Jaw" or adjust caliper and click "Record Reading".
                 </td>
               </tr>
             ) : (

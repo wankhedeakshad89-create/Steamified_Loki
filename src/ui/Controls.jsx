@@ -1,5 +1,6 @@
 import { useStore } from 'zustand';
 import { store } from '../state/store.js';
+import { ACTION_OK } from '../state/procedure.js';
 
 const TEST_RATES = [
   { label: 'Slow (0.02 mm/s)', value: 0.02 },
@@ -8,9 +9,8 @@ const TEST_RATES = [
 ];
 
 export default function Controls() {
-  const test = useStore(store, (s) => s.test);
-  const utm = useStore(store, (s) => s.utm);
-  const material = useStore(store, (s) => s.material);
+  const state = useStore(store);
+  const { test, utm, material, stepIndex, safety } = state;
   const startTest = useStore(store, (s) => s.startTest);
   const stopTest = useStore(store, (s) => s.stopTest);
   const emergencyStop = useStore(store, (s) => s.emergencyStop);
@@ -19,11 +19,21 @@ export default function Controls() {
 
   const isRunning = test?.status === 'running';
   const isFinished = ['failed', 'limit'].includes(test?.status);
-  const inContact = utm?.inContact ?? false;
 
-  // Permit Start Test to run once utm.inContact is true (temporary testing behavior)
-  const canStart = inContact && test?.status === 'idle';
+  // Strict procedure guarding: ACTION_OK.startTest (stepIndex === 5, safety approved, test idle)
+  const canStart = ACTION_OK.startTest(state);
   const currentRate = test?.rate ?? (material?.brittle ? 0.02 : 0.5);
+
+  let startTestTooltip = 'Apply axial compression load until failure';
+  if (!canStart) {
+    if (stepIndex !== 5) {
+      startTestTooltip = 'Prerequisite: Advance to Step 6 (TEST) in procedure';
+    } else if (!safety?.approved) {
+      startTestTooltip = 'Prerequisite: Requires supervisor safety sign-off (Step 5)';
+    } else if (test?.status !== 'idle') {
+      startTestTooltip = 'Test currently running or finished';
+    }
+  }
 
   return (
     <div className="bg-white border-t border-slate-200 p-2.5 flex flex-wrap items-center justify-between gap-3 text-xs select-none">
@@ -36,12 +46,13 @@ export default function Controls() {
               key={rateObj.value}
               type="button"
               disabled={isRunning}
+              title={isRunning ? 'Cannot change speed while test is running' : `Set test crosshead speed to ${rateObj.value} mm/s`}
               onClick={() => setTestRate(rateObj.value)}
               className={`h-7 px-2.5 text-xs rounded-[3px] font-mono transition-colors ${
                 Math.abs(currentRate - rateObj.value) < 1e-4
                   ? 'bg-white text-slate-900 font-semibold shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
-              } disabled:opacity-50`}
+              } disabled:opacity-50 cursor-pointer`}
             >
               {rateObj.label.split(' ')[0]} ({rateObj.value} mm/s)
             </button>
@@ -55,7 +66,14 @@ export default function Controls() {
         <button
           type="button"
           onClick={tareUTM}
-          disabled={utm?.tared}
+          disabled={utm?.tared || stepIndex !== 3}
+          title={
+            stepIndex !== 3
+              ? 'Prerequisite: Tare load cell during Step 4 (APPROACH)'
+              : utm?.tared
+              ? 'Load cell already tared to 0.00 kN'
+              : 'Zero load cell offset'
+          }
           className="h-8 px-3 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-[4px] hover:bg-slate-50 active:bg-slate-100 disabled:opacity-50 cursor-pointer"
         >
           {utm?.tared ? '✓ Load Tared' : 'Tare Load'}
@@ -67,6 +85,7 @@ export default function Controls() {
             type="button"
             onClick={() => startTest(currentRate)}
             disabled={!canStart || isFinished}
+            title={startTestTooltip}
             className="h-8 px-4 text-xs font-semibold text-white bg-[#0f172a] border border-[#0f172a] rounded-[4px] hover:bg-slate-800 active:bg-slate-900 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all shadow-xs"
           >
             Start Test
@@ -76,6 +95,7 @@ export default function Controls() {
           <button
             type="button"
             onClick={stopTest}
+            title="Pause crosshead loading"
             className="h-8 px-4 text-xs font-semibold text-amber-900 bg-amber-100 border border-amber-300 rounded-[4px] hover:bg-amber-200 active:bg-amber-300 cursor-pointer"
           >
             Pause Test
@@ -86,6 +106,7 @@ export default function Controls() {
         <button
           type="button"
           onClick={emergencyStop}
+          title="Immediately abort test execution"
           className="h-8 px-3 text-xs font-bold text-red-700 bg-red-50 border border-red-700 rounded-[4px] hover:bg-red-100 active:bg-red-200 cursor-pointer"
         >
           E-STOP

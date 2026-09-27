@@ -7,20 +7,20 @@ import StressStrainChart from './ui/StressStrainChart.jsx';
 
 export default function App() {
   return (
-    <div className="h-screen w-screen overflow-hidden flex flex-col bg-slate-100 font-sans text-slate-900 antialiased">
-      {/* 48px Header */}
+    <div className="h-screen w-screen overflow-hidden flex flex-col bg-slate-100 font-sans text-slate-900 antialiased select-none">
+      {/* 48px Fixed Header */}
       <Header />
 
-      {/* 3-Column Body Layout [260px | 1fr | 340px] */}
-      <div className="flex-1 grid grid-cols-[260px_1fr_340px] min-h-0">
+      {/* 3-Column Body Layout [260px | 1fr | 340px] with independent column scrolling */}
+      <div className="flex-1 grid grid-cols-[260px_1fr_340px] min-h-0 h-[calc(100vh-48px)] overflow-hidden">
         {/* Left Panel: Stepper */}
         <Stepper />
 
-        {/* Center Panel: Tab bar & content canvas */}
+        {/* Center Panel: Main Viewport & Tools */}
         <CenterPanel />
 
-        {/* Right Panel: Instrument Rack */}
-        <aside className="w-[340px] bg-white border-l border-slate-200 flex flex-col h-full min-h-0">
+        {/* Right Panel: Independent Scrolling Instrument Rack */}
+        <aside className="w-[340px] bg-white border-l border-slate-200 flex flex-col h-full min-h-0 overflow-y-auto">
           <LoadReadout />
           <DialGauge />
           <StressStrainChart />

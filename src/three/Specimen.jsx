@@ -8,6 +8,8 @@ import { Shards } from './Shards.jsx';
 
 export default function Specimen() {
   const trueDims = useStore(store, (s) => s.specimen.trueDims);
+  const xOffset = useStore(store, (s) => s.specimen.xOffset ?? 0);
+  const zOffset = useStore(store, (s) => s.specimen.zOffset ?? 0);
   const material = useStore(store, (s) => s.material);
   const test = useStore(store, (s) => s.test);
 
@@ -35,10 +37,11 @@ export default function Specimen() {
   }, [geometry, L0, e, b]);
 
   const isFailedCastIron = material?.brittle && test?.status === 'failed';
+  const position = [xOffset / 10, 0, zOffset / 10]; // 1 scene unit = 10 mm
 
   if (isFailedCastIron) {
     return (
-      <group>
+      <group position={position}>
         <FracturedSpecimen />
         <Shards />
       </group>
@@ -48,7 +51,7 @@ export default function Specimen() {
   const color = material?.brittle ? '#4b4b52' : '#8b949e';
 
   return (
-    <mesh geometry={geometry} position={[0, 0, 0]}>
+    <mesh geometry={geometry} position={position}>
       <meshStandardMaterial
         color={color}
         roughness={0.4}

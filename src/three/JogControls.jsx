@@ -24,6 +24,8 @@ export default function JogControls() {
   const animFrameRef = useRef(null);
   const lastTimeRef = useRef(null);
 
+  const isApproachStep = stepIndex === 3; // Step 3 (0-indexed) = APPROACH
+
   const updateJog = useCallback(() => {
     if (jogDirectionRef.current === 0) return;
 
@@ -39,6 +41,7 @@ export default function JogControls() {
   }, [speed, setHeadTravel]);
 
   const startJog = (dir) => {
+    if (!isApproachStep) return;
     jogDirectionRef.current = dir;
     lastTimeRef.current = performance.now();
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
@@ -60,7 +63,7 @@ export default function JogControls() {
     };
   }, []);
 
-  const isApproachStep = stepIndex === 3; // Step 3 = APPROACH
+  const jogDisabledTooltip = !isApproachStep ? 'Jog controls active ONLY during Step 4 (APPROACH)' : '';
 
   return (
     <div className="absolute bottom-3 left-3 right-3 bg-white/90 backdrop-blur-xs border border-slate-200 rounded-[4px] p-2 flex flex-wrap items-center justify-between gap-2 shadow-xs text-xs select-none z-10">
@@ -73,11 +76,13 @@ export default function JogControls() {
               key={key}
               type="button"
               onClick={() => setSpeedKey(key)}
+              disabled={!isApproachStep}
+              title={jogDisabledTooltip || `Set jog speed to ${cfg.label}`}
               className={`h-6 px-2 text-[11px] rounded-[2px] transition-colors font-mono ${
                 speedKey === key
                   ? 'bg-white text-slate-900 font-semibold shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
-              }`}
+              } disabled:opacity-40 disabled:cursor-not-allowed`}
             >
               {key.toUpperCase()}
             </button>
@@ -94,7 +99,8 @@ export default function JogControls() {
           onMouseLeave={stopJog}
           onTouchStart={() => startJog(-1)}
           onTouchEnd={stopJog}
-          disabled={headTravel <= 0}
+          disabled={!isApproachStep || headTravel <= 0}
+          title={jogDisabledTooltip || (headTravel <= 0 ? 'Crosshead at upper limit' : 'Hold to jog crosshead up')}
           className="h-7 px-3 bg-white border border-slate-300 rounded-[4px] font-medium text-slate-800 hover:bg-slate-50 active:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
         >
           ▲ Jog Up
@@ -107,7 +113,8 @@ export default function JogControls() {
           onMouseLeave={stopJog}
           onTouchStart={() => startJog(1)}
           onTouchEnd={stopJog}
-          disabled={headTravel >= contactTravel}
+          disabled={!isApproachStep || headTravel >= contactTravel}
+          title={jogDisabledTooltip || (headTravel >= contactTravel ? 'Platen in contact with specimen' : 'Hold to jog crosshead down')}
           className="h-7 px-3 bg-[#0f172a] text-white border border-[#0f172a] rounded-[4px] font-medium hover:bg-slate-800 active:bg-slate-900 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
         >
           ▼ Jog Down
@@ -117,7 +124,8 @@ export default function JogControls() {
           <button
             type="button"
             onClick={tareUTM}
-            className="h-7 px-3 bg-amber-500 text-white border border-amber-600 rounded-[4px] font-semibold hover:bg-amber-600 active:bg-amber-700 animate-pulse"
+            title="Zero load cell reading in contact"
+            className="h-7 px-3 bg-amber-500 text-white border border-amber-600 rounded-[4px] font-semibold hover:bg-amber-600 active:bg-amber-700 animate-pulse cursor-pointer"
           >
             Tare Load
           </button>
